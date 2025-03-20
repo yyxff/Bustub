@@ -28,7 +28,7 @@
 
 namespace bustub {
 
-TEST(LRUKReplacerTest, DISABLED_SampleTest) {
+TEST(LRUKReplacerTest, SampleTest) {
   // Note that comparison with `std::nullopt` always results in `false`, and if the optional type actually does contain
   // a value, the comparison will compare the inner value.
   // See: https://devblogs.microsoft.com/oldnewthing/20211004-00/?p=105754
@@ -101,12 +101,14 @@ TEST(LRUKReplacerTest, DISABLED_SampleTest) {
   ASSERT_EQ(2, lru_replacer.Size());
 
   // Evict the last two frames.
+  std::cout<<103<<std::endl;
   ASSERT_EQ(4, lru_replacer.Evict());
   ASSERT_EQ(1, lru_replacer.Size());
   ASSERT_EQ(1, lru_replacer.Evict());
   ASSERT_EQ(0, lru_replacer.Size());
 
   // Insert frame 1 again and mark it as non-evictable.
+  std::cout<<110<<std::endl;
   lru_replacer.RecordAccess(1);
   lru_replacer.SetEvictable(1, false);
   ASSERT_EQ(0, lru_replacer.Size());
@@ -116,19 +118,26 @@ TEST(LRUKReplacerTest, DISABLED_SampleTest) {
   ASSERT_EQ(false, frame.has_value());
 
   // Mark frame 1 as evictable again and evict it.
+  std::cout<<120<<std::endl;
   lru_replacer.SetEvictable(1, true);
   ASSERT_EQ(1, lru_replacer.Size());
   ASSERT_EQ(1, lru_replacer.Evict());
   ASSERT_EQ(0, lru_replacer.Size());
 
   // There is nothing left in the replacer, so make sure this doesn't do something strange.
+  std::cout<<127<<std::endl;
   frame = lru_replacer.Evict();
   ASSERT_EQ(false, frame.has_value());
   ASSERT_EQ(0, lru_replacer.Size());
 
   // Make sure that setting a non-existent frame as evictable or non-evictable doesn't do something strange.
+  std::cout<<133<<std::endl;
   lru_replacer.SetEvictable(6, false);
   lru_replacer.SetEvictable(6, true);
+
+  std::cout<<"done"<<std::endl;
+
+
 }
 
 }  // namespace bustub
