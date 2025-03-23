@@ -23,7 +23,7 @@ namespace bustub {
 const size_t FRAMES = 10;
 const size_t K_DIST = 2;
 
-TEST(PageGuardTest, DISABLED_DropTest) {
+TEST(PageGuardTest, DropTest) {
   auto disk_manager = std::make_shared<DiskManagerUnlimitedMemory>();
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -45,6 +45,7 @@ TEST(PageGuardTest, DISABLED_DropTest) {
 
   const auto pid1 = bpm->NewPage();
   const auto pid2 = bpm->NewPage();
+  std::cout<<"ck1"<<std::endl;
 
   {
     auto read_guarded_page = bpm->ReadPage(pid1);
@@ -65,6 +66,7 @@ TEST(PageGuardTest, DISABLED_DropTest) {
     ASSERT_EQ(0, bpm->GetPinCount(pid1));
     ASSERT_EQ(0, bpm->GetPinCount(pid2));
   }  // Destructor should be called. Useless but should not cause issues.
+  std::cout<<"ck2"<<std::endl;
 
   // This will hang if the latches were not unlocked correctly in the destructors.
   {
@@ -77,6 +79,7 @@ TEST(PageGuardTest, DISABLED_DropTest) {
     // Fill up the BPM.
     std::vector<WritePageGuard> guards;
     for (size_t i = 0; i < FRAMES; i++) {
+      std::cout<<"ck "<<i<<std::endl;
       const auto new_pid = bpm->NewPage();
       guards.push_back(bpm->WritePage(new_pid));
       ASSERT_EQ(1, bpm->GetPinCount(new_pid));
@@ -112,7 +115,7 @@ TEST(PageGuardTest, DISABLED_DropTest) {
   disk_manager->ShutDown();
 }
 
-TEST(PageGuardTest, DISABLED_MoveTest) {
+TEST(PageGuardTest, MoveTest) {
   auto disk_manager = std::make_shared<DiskManagerUnlimitedMemory>();
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 

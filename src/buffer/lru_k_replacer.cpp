@@ -47,45 +47,47 @@ auto LRUKReplacer::Evict() -> std::optional<frame_id_t> {
     if (!history_list.empty()){
         std::cout<<"history"<<std::endl;
         for (frame_id_t fid : history_list) {
-            printf("%d",fid);
+            std::cout<<"check fid "<<fid<<std::endl;
+            std::cout<<"evictable:"<<node_store_.find(fid)->second.is_evictable_<<std::endl;
 
             if (node_store_.find(fid)->second.is_evictable_){
                 
                 history_list.remove(fid);
                 node_store_.erase(fid);
                 curr_size_--;
+                std::cout<<"evict fid "<<fid<<std::endl;
                 return fid;
             }
         }
 
-    }else{
-        // delete it
-        std::cout<<"buffer"<<std::endl;
-        std::cout<<"head"<<head<<std::endl;
-        std::cout<<"tail"<<tail<<std::endl;
-        frame_id_t start = tail;
-        while (start!=-1){
-            LRUKNode & node = node_store_.find(start)->second;
-            std::cout<<node.fid_<<std::endl;
-            if (node.is_evictable_){
-                frame_id_t fid = node.fid_;
-                if (node.fid_prev!=-1){
-                    node_store_.find(node.fid_prev)->second.fid_next=node.fid_next;
-                }else{
-                    head=node.fid_next;
-                }
-                if (node.fid_next!=-1){
-                    node_store_.find(node.fid_next)->second.fid_prev=node.fid_prev;
-                }else{
-                    tail=node.fid_prev;
-                }
-                node_store_.erase(fid);
-                curr_size_--;
-                return fid;
-            }
-            start=node.fid_prev;
-        }
     }
+    // delete it
+    std::cout<<"buffer"<<std::endl;
+    std::cout<<"head"<<head<<std::endl;
+    std::cout<<"tail"<<tail<<std::endl;
+    frame_id_t start = tail;
+    while (start!=-1){
+        LRUKNode & node = node_store_.find(start)->second;
+        std::cout<<node.fid_<<std::endl;
+        if (node.is_evictable_){
+            frame_id_t fid = node.fid_;
+            if (node.fid_prev!=-1){
+                node_store_.find(node.fid_prev)->second.fid_next=node.fid_next;
+            }else{
+                head=node.fid_next;
+            }
+            if (node.fid_next!=-1){
+                node_store_.find(node.fid_next)->second.fid_prev=node.fid_prev;
+            }else{
+                tail=node.fid_prev;
+            }
+            node_store_.erase(fid);
+            curr_size_--;
+            return fid;
+        }
+        start=node.fid_prev;
+    }
+    
     return std::nullopt; 
 }
 
@@ -103,7 +105,7 @@ auto LRUKReplacer::Evict() -> std::optional<frame_id_t> {
  * leaderboard tests.
  */
 void LRUKReplacer::RecordAccess(frame_id_t frame_id, [[maybe_unused]] AccessType access_type) {
-    
+    // std::cout<<"access fid "<<frame_id<<std::endl;
     if (auto it = node_store_.find(frame_id); it != node_store_.end()){
         LRUKNode & node = it->second;
         // update time

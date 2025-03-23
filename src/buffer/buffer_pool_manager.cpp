@@ -195,6 +195,74 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
 
  }
 
+auto BufferPoolManager::GetAvailableFrame(page_id_t page_id) -> std::optional<frame_id_t> {
+
+  // fid need to return
+  std::optional<frame_id_t> fid = std::nullopt;
+
+  // case 2: if there are free frame
+  if (free_frames_.size() > 0){
+    fid = free_frames_.front();
+    free_frames_.pop_front();
+  }else{
+    // case 3: if no free frame, evict one, write it back, use this one
+    auto frame_id = replacer_->Evict();
+    // if can not evict
+    if (!frame_id.has_value()){
+      return fid;
+    }
+
+    fid = frame_id;
+    // write evicted one to disk
+    // dirty data, write back
+    auto frame = frames_[frame_id.value()];
+    if (frame->is_dirty_){
+      // use a promise to wait it done
+      auto promise = disk_scheduler_->CreatePromise();
+      auto future = promise.get_future();
+
+      DiskRequest write_request{true, frame->GetDataMut(), page_id, std::move(promise)};
+      disk_scheduler_->Schedule(std::move(write_request));
+
+      // wait until done
+      future.get();
+    }
+
+  }
+
+  // erase freed pageid
+  for (auto it = page_table_.begin(); it != page_table_.end(); ++it) {
+    if (it->second == fid.value()) {
+      page_table_.erase(it);
+      break;
+    }
+  }
+  auto frame = frames_[fid.value()];
+  frame.reset();
+  page_table_[page_id] = fid.value();
+
+
+  return fid;
+}
+
+
+auto BufferPoolManager::ReadPageFromDisk(page_id_t page_id, frame_id_t fid) -> bool {
+  // dirty data, write back
+  auto frame = frames_[fid];
+  // use a promise to wait it done
+  auto promise = disk_scheduler_->CreatePromise();
+  auto future = promise.get_future();
+
+  DiskRequest read_request{false, frame->GetDataMut(), page_id, std::move(promise)};
+  disk_scheduler_->Schedule(std::move(read_request));
+
+  // wait until done
+  auto result = future.get();
+
+  frame->pin_count_.store(0);
+  frame->is_dirty_ = false;
+  return result;
+}
 /**
  * @brief Acquires an optional write-locked guard over a page of data. The user can specify an `AccessType` if needed.
  *
@@ -236,18 +304,32 @@ auto BufferPoolManager::DeletePage(page_id_t page_id) -> bool {
  */
 auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_type) -> std::optional<WritePageGuard> {
   // TODO need to consider if the page is not in memeory
-  
+  std::scoped_lock<std::mutex> latch(*bpm_latch_);
+
+  // init fid
+  std::optional<frame_id_t> fid = std::nullopt;
+
+  // case 1: if page is in memory, get its fid
   auto it = page_table_.find(page_id);
-  if (it == page_table_.end()){
+  if (it != page_table_.end()){
+    fid = it->second;
+  }else{// case 2/3: if page is not in memory, need to get a free one or replace one
+    fid = GetAvailableFrame(page_id);
+  }
+
+  if (!fid.has_value()){
+    std::cout<<"Error: can not get fid"<<std::endl;
     return std::nullopt;
   }
+  // std::cout<<"DEBUG:get fid"<<std::endl;
+
+  // get free frame id
   // find the frame pointer
-  auto fid = it->second;
-  auto frame = frames_[fid];
+  auto frame = frames_[fid.value()];
 
   // update replacer
-  replacer_->SetEvictable(fid, false);
-  replacer_->RecordAccess(fid);
+  replacer_->SetEvictable(fid.value(), false);
+  replacer_->RecordAccess(fid.value());
 
   return WritePageGuard(page_id, frame, replacer_, bpm_latch_, disk_scheduler_);
 }
@@ -278,17 +360,31 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
  */
 auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_type) -> std::optional<ReadPageGuard> {
   // TODO need to consider if the page is not in memeory
+
+  std::scoped_lock<std::mutex> latch(*bpm_latch_);
+
+  // init fid
+  std::optional<frame_id_t> fid = std::nullopt;
+
+  // case 1: if page is in memory, get its fid
   auto it = page_table_.find(page_id);
-  if (it == page_table_.end()){
+  if (it != page_table_.end()){
+    fid = it->second;
+  }else{// case 2/3: if page is not in memory, need to get a free one or replace one
+    fid = GetAvailableFrame(page_id);
+  }
+
+  if (!fid.has_value()){
+    std::cout<<"Error: can not get fid"<<std::endl;
     return std::nullopt;
   }
-  // find the frame pointer
-  auto fid = it->second;
-  auto frame = frames_[fid];
+
+
+  auto frame = frames_[fid.value()];
 
   // update replacer
-  replacer_->SetEvictable(fid, false);
-  replacer_->RecordAccess(fid);
+  replacer_->SetEvictable(fid.value(), false);
+  replacer_->RecordAccess(fid.value());
 
   return ReadPageGuard(page_id, frame, replacer_, bpm_latch_, disk_scheduler_);
 }
@@ -411,7 +507,13 @@ auto BufferPoolManager::FlushPageUnsafe(page_id_t page_id) -> bool {
 auto BufferPoolManager::FlushPage(page_id_t page_id) -> bool { 
   // auto guard_opt = CheckedWritePage(page_id, AccessType::Unknown);
   std::scoped_lock<std::mutex> lock(*bpm_latch_);
+
+  auto it = page_table_.find(page_id);
+  if (it == page_table_.end()){
+    return false;
+  }
   FlushPageUnsafe(page_id);
+  return true;
 }
 
 /**

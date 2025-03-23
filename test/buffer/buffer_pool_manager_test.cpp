@@ -105,6 +105,7 @@ TEST(BufferPoolManagerTest, DISABLED_PagePinEasyTest) {
     ASSERT_EQ(0, bpm->GetPinCount(pageid0));
   }
 
+  std::cout<<"ck 1"<<std::endl;
   {
     const auto temp_page_id1 = bpm->NewPage();
     const auto temp_page1_opt = bpm->CheckedReadPage(temp_page_id1);
@@ -160,7 +161,7 @@ TEST(BufferPoolManagerTest, DISABLED_PagePinEasyTest) {
   remove(disk_manager->GetLogFileName());
 }
 
-TEST(BufferPoolManagerTest, DISABLED_PagePinMediumTest) {
+TEST(BufferPoolManagerTest, PagePinMediumTest) {
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -215,11 +216,12 @@ TEST(BufferPoolManagerTest, DISABLED_PagePinMediumTest) {
   // Scenario: After unpinning pages {1, 2, 3, 4, 5}, we should be able to create 4 new pages and bring them into
   // memory. Bringing those 4 pages into memory should evict the first 4 pages {1, 2, 3, 4} because of LRU.
   for (size_t i = 0; i < ((FRAMES / 2) - 1); i++) {
+    std::cout<<"ck "<<i<<std::endl;
     const auto pid = bpm->NewPage();
     auto page = bpm->WritePage(pid);
     pages.push_back(std::move(page));
   }
-
+std::cout<<"ck here"<<pid0<<std::endl;
   // Scenario: There should be one frame available, and we should be able to fetch the data we wrote a while ago.
   {
     const auto original_page = bpm->ReadPage(pid0);
