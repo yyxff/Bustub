@@ -343,6 +343,7 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
 
   // update replacer
   replacer_->SetEvictable(fid.value(), false);
+  std::cout<<"make it false, when we want to write page:" <<page_id << std::endl;
   replacer_->RecordAccess(fid.value());
 
   return WritePageGuard(page_id, frame, replacer_, bpm_latch_, disk_scheduler_);
@@ -403,6 +404,8 @@ auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_typ
 
   // update replacer
   replacer_->SetEvictable(fid.value(), false);
+  std::cout<<"make it false, when we want to read page:" <<page_id << std::endl;
+
   replacer_->RecordAccess(fid.value());
 
   return ReadPageGuard(page_id, frame, replacer_, bpm_latch_, disk_scheduler_);

@@ -176,6 +176,8 @@ void ReadPageGuard::Drop() {
   frame_->pin_count_.fetch_sub(1);
   if (frame_->pin_count_.load() == 0) {
     replacer_->SetEvictable(frame_->frame_id_, true);
+    std::cout<<"read guard make it true, page: "<<page_id_ << std::endl;
+
   }
   frame_->rwlatch_.unlock_shared();
   is_valid_ = false;
@@ -223,7 +225,7 @@ WritePageGuard::WritePageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> f
   // dirty
   frame_->is_dirty_ = true;
 
-  // you need to set it to false!!! or after you get your guard, 
+  // you need to set it to false!!! or before you get guard, some one drop it and make it true
   replacer_->SetEvictable(frame_->frame_id_, false);
 
   std::cout<<"get write guard, page: "<<page_id<<std::endl;
@@ -361,6 +363,7 @@ void WritePageGuard::Drop() {
   frame_->pin_count_.fetch_sub(1);
   if (frame_->pin_count_.load() == 0) {
     replacer_->SetEvictable(frame_->frame_id_, true);
+    std::cout<<"write guard make it true, page: "<<page_id_ << std::endl;
   }
   frame_->rwlatch_.unlock();
   is_valid_ = false;
