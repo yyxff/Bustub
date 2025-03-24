@@ -50,7 +50,7 @@ ReadPageGuard::ReadPageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> fra
 
   replacer_->SetEvictable(frame_->frame_id_, false);
 
-  std::cout<<"get read guard, page: "<<page_id<<std::endl;
+  // std::cout<<"get read guard, page: "<<page_id<<std::endl;
 }
 
 /**
@@ -171,12 +171,12 @@ void ReadPageGuard::Drop() {
     return ;
   }
   
-  std::cout << "ReadPageGuard::Drop() called, page: "<<page_id_ << std::endl;
+  // std::cout << "ReadPageGuard::Drop() called, page: "<<page_id_ << std::endl;
   std::scoped_lock<std::mutex> latch(*bpm_latch_);
   frame_->pin_count_.fetch_sub(1);
   if (frame_->pin_count_.load() == 0) {
     replacer_->SetEvictable(frame_->frame_id_, true);
-    std::cout<<"read guard make it true, page: "<<page_id_ << std::endl;
+    // std::cout<<"read guard make it true, page: "<<page_id_ << std::endl;
 
   }
   frame_->rwlatch_.unlock_shared();
@@ -228,7 +228,7 @@ WritePageGuard::WritePageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> f
   // you need to set it to false!!! or before you get guard, some one drop it and make it true
   replacer_->SetEvictable(frame_->frame_id_, false);
 
-  std::cout<<"get write guard, page: "<<page_id<<std::endl;
+  // std::cout<<"get write guard, page: "<<page_id<<std::endl;
 
 }
 
@@ -358,12 +358,12 @@ void WritePageGuard::Drop() {
     return ;
   }
   
-  std::cout << "WritePageGuard::Drop() called, page: "<<page_id_ << std::endl;
+  // std::cout << "WritePageGuard::Drop() called, page: "<<page_id_ << std::endl;
   std::scoped_lock<std::mutex> latch(*bpm_latch_);
   frame_->pin_count_.fetch_sub(1);
   if (frame_->pin_count_.load() == 0) {
     replacer_->SetEvictable(frame_->frame_id_, true);
-    std::cout<<"write guard make it true, page: "<<page_id_ << std::endl;
+    // std::cout<<"write guard make it true, page: "<<page_id_ << std::endl;
   }
   frame_->rwlatch_.unlock();
   is_valid_ = false;

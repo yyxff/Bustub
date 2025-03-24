@@ -228,7 +228,11 @@ auto BufferPoolManager::GetAvailableFrame(page_id_t page_id) -> std::optional<fr
           break;
         }
       }
-      std::cout<<"write page_evicted "<<page_id_evicted<<" to disk"<<std::endl;
+
+      // get a write lock
+      // auto guard = WritePage(page_id_evicted);
+
+      // std::cout<<"write page_evicted "<<page_id_evicted<<" to disk"<<std::endl;
       DiskRequest write_request{true, frame->GetDataMut(), page_id_evicted, std::move(promise)};
       disk_scheduler_->Schedule(std::move(write_request));
 
@@ -313,18 +317,20 @@ auto BufferPoolManager::ReadPageFromDisk(page_id_t page_id, frame_id_t fid) -> b
  */
 auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_type) -> std::optional<WritePageGuard> {
   // TODO need to consider if the page is not in memeory
+  // std::cout<<"try to get bpm lock,page: "<<page_id<<std::endl;
   std::scoped_lock<std::mutex> latch(*bpm_latch_);
+  // std::cout<<"hold bpm lock!page: "<<page_id<<std::endl;
 
   // init fid
   std::optional<frame_id_t> fid = std::nullopt;
 
   // case 1: if page is in memory, get its fid
   auto it = page_table_.find(page_id);
-  std::cout<<"all pages: ";
-  for (auto page_id : page_table_){
-    std::cout<<" "<<page_id.first;
-  }
-  std::cout<<"we want: "<<page_id<<std::endl;
+  // std::cout<<"all pages: ";
+  // for (auto page_id : page_table_){
+    // std::cout<<" "<<page_id.first;
+  // }
+  // std::cout<<"we want: "<<page_id<<std::endl;
   if (it != page_table_.end()){
     fid = it->second;
   }else{// case 2/3: if page is not in memory, need to get a free one or replace one
@@ -332,7 +338,7 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
   }
 
   if (!fid.has_value()){
-    std::cout<<"Error: can not get fid"<<std::endl;
+    // std::cout<<"Error: can not get fid"<<std::endl;
     return std::nullopt;
   }
   // std::cout<<"DEBUG:get fid"<<std::endl;
@@ -343,7 +349,7 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
 
   // update replacer
   replacer_->SetEvictable(fid.value(), false);
-  std::cout<<"make it false, when we want to write page:" <<page_id << std::endl;
+  // std::cout<<"make it false, when we want to write page:" <<page_id << std::endl;
   replacer_->RecordAccess(fid.value());
 
   return WritePageGuard(page_id, frame, replacer_, bpm_latch_, disk_scheduler_);
@@ -383,11 +389,11 @@ auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_typ
 
   // case 1: if page is in memory, get its fid
   auto it = page_table_.find(page_id);
-  std::cout<<"all pages: ";
-  for (auto page_id : page_table_){
-    std::cout<<" "<<page_id.first;
-  }
-  std::cout<<"we want: "<<page_id<<std::endl;
+  // std::cout<<"all pages: ";
+  // for (auto page_id : page_table_){
+    // std::cout<<" "<<page_id.first;
+  // }
+  // std::cout<<"we want: "<<page_id<<std::endl;
   if (it != page_table_.end()){
     fid = it->second;
   }else{// case 2/3: if page is not in memory, need to get a free one or replace one
@@ -395,7 +401,7 @@ auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_typ
   }
 
   if (!fid.has_value()){
-    std::cout<<"Error: can not get fid"<<std::endl;
+    // std::cout<<"Error: can not get fid"<<std::endl;
     return std::nullopt;
   }
 
@@ -404,7 +410,7 @@ auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_typ
 
   // update replacer
   replacer_->SetEvictable(fid.value(), false);
-  std::cout<<"make it false, when we want to read page:" <<page_id << std::endl;
+  // std::cout<<"make it false, when we want to read page:" <<page_id << std::endl;
 
   replacer_->RecordAccess(fid.value());
 

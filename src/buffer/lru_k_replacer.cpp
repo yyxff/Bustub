@@ -45,19 +45,19 @@ LRUKReplacer::LRUKReplacer(size_t num_frames, size_t k) : replacer_size_(num_fra
 auto LRUKReplacer::Evict() -> std::optional<frame_id_t> {
 
     std::lock_guard<std::mutex> lock(latch_);
-    printf("evict\n"); 
+    // printf("evict\n"); 
     if (!history_list.empty()){
-        std::cout<<"history"<<std::endl;
+        // std::cout<<"history"<<std::endl;
         for (frame_id_t fid : history_list) {
-            std::cout<<"check fid "<<fid<<",";
-            std::cout<<"evictable:"<<node_store_.find(fid)->second.is_evictable_<<std::endl;
+            // std::cout<<"check fid "<<fid<<",";
+            // std::cout<<"evictable:"<<node_store_.find(fid)->second.is_evictable_<<std::endl;
 
             if (node_store_.find(fid)->second.is_evictable_){
                 
                 history_list.remove(fid);
                 node_store_.erase(fid);
                 curr_size_--;
-                std::cout<<"evict fid "<<fid<<std::endl;
+                // std::cout<<"evict fid "<<fid<<std::endl;
                 return fid;
             }
         }
@@ -70,7 +70,7 @@ auto LRUKReplacer::Evict() -> std::optional<frame_id_t> {
     frame_id_t start = tail;
     while (start!=-1){
         LRUKNode & node = node_store_.find(start)->second;
-        std::cout<<"fid: "<<node.fid_<<", evictable: "<<node.is_evictable_<<std::endl;
+        // std::cout<<"fid: "<<node.fid_<<", evictable: "<<node.is_evictable_<<std::endl;
         if (node.is_evictable_){
             frame_id_t fid = node.fid_;
             if (node.fid_prev!=-1){
