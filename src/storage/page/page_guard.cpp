@@ -43,8 +43,14 @@ ReadPageGuard::ReadPageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> fra
     frame_->rwlatch_.lock_shared();
     bpm_latch_->lock();
   }
+  // frame_->rwlatch_.lock_shared();
+
   // pin count++
   frame_->pin_count_.fetch_add(1);
+
+  replacer_->SetEvictable(frame_->frame_id_, false);
+
+  std::cout<<"get read guard, page: "<<page_id<<std::endl;
 }
 
 /**
@@ -165,7 +171,7 @@ void ReadPageGuard::Drop() {
     return ;
   }
   
-  std::cout << "ReadPageGuard::Drop() called" << std::endl;
+  std::cout << "ReadPageGuard::Drop() called, page: "<<page_id_ << std::endl;
   std::scoped_lock<std::mutex> latch(*bpm_latch_);
   frame_->pin_count_.fetch_sub(1);
   if (frame_->pin_count_.load() == 0) {
@@ -210,10 +216,18 @@ WritePageGuard::WritePageGuard(page_id_t page_id, std::shared_ptr<FrameHeader> f
     frame_->rwlatch_.lock();
     bpm_latch_->lock();
   }
+  // frame_->rwlatch_.lock();
+
   // pin count++
   frame_->pin_count_.fetch_add(1);
   // dirty
   frame_->is_dirty_ = true;
+
+  // you need to set it to false!!! or after you get your guard, 
+  replacer_->SetEvictable(frame_->frame_id_, false);
+
+  std::cout<<"get write guard, page: "<<page_id<<std::endl;
+
 }
 
 /**
@@ -342,7 +356,7 @@ void WritePageGuard::Drop() {
     return ;
   }
   
-  std::cout << "WritePageGuard::Drop() called" << std::endl;
+  std::cout << "WritePageGuard::Drop() called, page: "<<page_id_ << std::endl;
   std::scoped_lock<std::mutex> latch(*bpm_latch_);
   frame_->pin_count_.fetch_sub(1);
   if (frame_->pin_count_.load() == 0) {

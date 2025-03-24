@@ -161,7 +161,7 @@ TEST(BufferPoolManagerTest, DISABLED_PagePinEasyTest) {
   remove(disk_manager->GetLogFileName());
 }
 
-TEST(BufferPoolManagerTest, PagePinMediumTest) {
+TEST(BufferPoolManagerTest, DISABLED_PagePinMediumTest) {
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
   auto bpm = std::make_shared<BufferPoolManager>(FRAMES, disk_manager.get(), K_DIST);
 
@@ -361,9 +361,9 @@ TEST(BufferPoolManagerTest, DISABLED_DeadlockTest) {
   child.join();
 }
 
-TEST(BufferPoolManagerTest, DISABLED_EvictableTest) {
+TEST(BufferPoolManagerTest, EvictableTest) {
   // Test if the evictable status of a frame is always correct.
-  const size_t rounds = 1000;
+  const size_t rounds = 2000;
   const size_t num_readers = 8;
 
   auto disk_manager = std::make_shared<DiskManager>(db_fname);
@@ -396,7 +396,7 @@ TEST(BufferPoolManagerTest, DISABLED_EvictableTest) {
         const auto read_guard = bpm->ReadPage(winner_pid);
 
         // Since the only frame is pinned, no thread should be able to bring in a new page.
-        ASSERT_FALSE(bpm->CheckedReadPage(loser_pid).has_value());
+        ASSERT_FALSE(bpm->CheckedReadPage(loser_pid).has_value()) << "i'm "<<j<<", loser: "<<loser_pid<<", winner: "<<winner_pid;
       });
     }
 

@@ -221,11 +221,20 @@ auto BufferPoolManager::GetAvailableFrame(page_id_t page_id) -> std::optional<fr
       auto promise = disk_scheduler_->CreatePromise();
       auto future = promise.get_future();
 
-      DiskRequest write_request{true, frame->GetDataMut(), page_id, std::move(promise)};
+      page_id_t page_id_evicted;
+      for (const auto &entry : page_table_) {
+        if (entry.second == frame_id) {
+          page_id_evicted = entry.first;
+          break;
+        }
+      }
+      std::cout<<"write page_evicted "<<page_id_evicted<<" to disk"<<std::endl;
+      DiskRequest write_request{true, frame->GetDataMut(), page_id_evicted, std::move(promise)};
       disk_scheduler_->Schedule(std::move(write_request));
 
       // wait until done
       future.get();
+      frame->is_dirty_ = false;
     }
 
   }
@@ -240,7 +249,7 @@ auto BufferPoolManager::GetAvailableFrame(page_id_t page_id) -> std::optional<fr
   auto frame = frames_[fid.value()];
   frame.reset();
   page_table_[page_id] = fid.value();
-
+  ReadPageFromDisk(page_id, fid.value());
 
   return fid;
 }
@@ -311,6 +320,11 @@ auto BufferPoolManager::CheckedWritePage(page_id_t page_id, AccessType access_ty
 
   // case 1: if page is in memory, get its fid
   auto it = page_table_.find(page_id);
+  std::cout<<"all pages: ";
+  for (auto page_id : page_table_){
+    std::cout<<" "<<page_id.first;
+  }
+  std::cout<<"we want: "<<page_id<<std::endl;
   if (it != page_table_.end()){
     fid = it->second;
   }else{// case 2/3: if page is not in memory, need to get a free one or replace one
@@ -368,6 +382,11 @@ auto BufferPoolManager::CheckedReadPage(page_id_t page_id, AccessType access_typ
 
   // case 1: if page is in memory, get its fid
   auto it = page_table_.find(page_id);
+  std::cout<<"all pages: ";
+  for (auto page_id : page_table_){
+    std::cout<<" "<<page_id.first;
+  }
+  std::cout<<"we want: "<<page_id<<std::endl;
   if (it != page_table_.end()){
     fid = it->second;
   }else{// case 2/3: if page is not in memory, need to get a free one or replace one
